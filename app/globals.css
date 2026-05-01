@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #030709;
+  color: #F5F5FD;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Faint grid + radial accent for the global app background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(60% 60% at 50% -10%, rgba(175,208,204,0.10) 0%, rgba(3,7,9,0) 60%),
+    linear-gradient(rgba(175,208,204,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(175,208,204,0.04) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+  mask-image: linear-gradient(to bottom, black 0%, black 80%, transparent 100%);
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm shadow-card;
+  }
+  .card-pad { @apply p-5 sm:p-6; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10
+           px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply bg-mint text-ink-900 border-mint hover:bg-mint-400; }
+  .btn-ghost { @apply bg-transparent text-bone hover:bg-white/5; }
+  .btn-danger { @apply bg-red-500/90 text-white border-red-400 hover:bg-red-500; }
+
+  .input, .select, .textarea {
+    @apply w-full rounded-xl border border-white/10 bg-ink-700/60 px-3 py-2 text-sm
+           text-bone placeholder:text-bone-300/40
+           focus:outline-none focus:ring-2 focus:ring-mint/40 focus:border-mint/40;
+  }
+  .label { @apply text-xs uppercase tracking-wider text-bone-300/60 mb-1.5 block; }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium
+           border border-white/10 bg-white/5 text-bone-300;
+  }
+  .chip-mint   { @apply bg-mint/15 text-mint border-mint/30; }
+  .chip-amber  { @apply bg-amber-500/10 text-amber-300 border-amber-500/30; }
+  .chip-red    { @apply bg-red-500/10 text-red-300 border-red-500/30; }
+  .chip-violet { @apply bg-violet-500/10 text-violet-300 border-violet-500/30; }
+  .chip-slate  { @apply bg-white/5 text-bone-300 border-white/10; }
+
+  .stat-num { @apply font-display text-3xl sm:text-4xl tracking-tight text-bone; }
+  .stat-label { @apply text-xs uppercase tracking-[0.18em] text-bone-300/60; }
+
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-bone-300/80
+           hover:text-bone hover:bg-white/5 transition-colors;
+  }
+  .nav-item-active { @apply bg-mint/10 text-bone border border-mint/20; }
+
+  .table-shell { @apply card overflow-hidden; }
+  .th { @apply px-4 py-3 text-left text-[11px] uppercase tracking-wider text-bone-300/60 font-medium border-b border-white/5; }
+  .td { @apply px-4 py-3 text-sm text-bone-200 border-b border-white/[0.04] align-middle; }
+
+  .ring-soft { @apply ring-1 ring-white/5; }
+}
+
+/* scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(175,208,204,0.15); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(175,208,204,0.25); }
+
+/* Recharts tooltip dark theme */
+.recharts-default-tooltip {
+  background: rgba(10,16,20,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+  color: #F5F5FD !important;
+}
+.recharts-tooltip-label { color: #AFD0CC !important; }

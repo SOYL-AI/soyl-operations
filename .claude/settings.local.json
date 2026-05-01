@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -c \"import pypdf; r = pypdf.PdfReader\\(r'C:\\\\Users\\\\ryang\\\\Downloads\\\\SOYL_COD_PRD_V2 \\(1\\).pdf'\\); print\\(f'Pages: {len\\(r.pages\\)}'\\); [print\\(f'--- PAGE {i+1} ---'\\); print\\(p.extract_text\\(\\)\\) for i, p in enumerate\\(r.pages\\)]\" 2>&1)",
+      "Bash(python _extract_pdf.py)",
+      "Bash(pip install *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=stub-anon-key SUPABASE_SERVICE_ROLE_KEY=stub-srv NEXT_PUBLIC_SITE_URL=http://localhost:3000 npx next build)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}

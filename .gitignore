@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.vercel/
+.env
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts.bak
+_prd.txt
+_extract_pdf.py
+.DS_Store

@@ -8,8 +8,19 @@ create extension if not exists "uuid-ossp";
 create extension if not exists pgcrypto;
 
 -- ----- enums -----
+-- IMPORTANT: if you are upgrading an existing project where the `role` enum
+-- already exists WITHOUT 'super_admin', Postgres will not let you USE the new
+-- value in the same transaction it was added in. Run ONLY this block first,
+-- on its own, then run the rest of the file:
+--
+--   alter type role add value if not exists 'super_admin' before 'ceo';
+--
+-- After that single statement is committed, you can run the full schema.sql.
+-- For a brand-new project the type is created with 'super_admin' included and
+-- no separate step is needed.
+
 do $$ begin
-  create type role as enum ('ceo','manager','employee','intern');
+  create type role as enum ('super_admin','ceo','manager','employee','intern');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -39,18 +50,46 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
--- Auto-create profile on signup
+-- Seeded super admin email. Set this ONCE per project:
+--   alter database postgres set app.super_admin_email = 'ryangomez9965@gmail.com';
+-- Anyone who signs up with this exact email is auto-promoted to 'super_admin'.
+-- Everyone else lands as 'employee'. The DB is the source of truth — there is no
+-- way to grant super_admin via the UI.
+do $$ begin
+  execute format('alter database %I set app.super_admin_email = %L',
+    current_database(), 'ryangomez9965@gmail.com');
+exception when others then null; end $$;
+
+-- Auto-create profile on signup.
+-- IMPORTANT: role is hard-coded. Never trust raw_user_meta_data->>'role'
+-- because it is user-controllable from the signup form. Promote real managers/CEO
+-- from the Team page after onboarding. The seeded super admin email is the only
+-- way to bootstrap the first system administrator.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  seeded_admin text := current_setting('app.super_admin_email', true);
+  assigned_role role := 'employee';
 begin
+  if seeded_admin is not null
+     and length(seeded_admin) > 0
+     and lower(new.email) = lower(seeded_admin) then
+    assigned_role := 'super_admin';
+  end if;
+
   insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    coalesce((new.raw_user_meta_data->>'role')::role, 'employee')
+    assigned_role
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update
+    set role = case
+      when public.profiles.role = 'super_admin' then public.profiles.role
+      when assigned_role = 'super_admin' then 'super_admin'
+      else public.profiles.role
+    end;
   return new;
 end; $$;
 
@@ -67,7 +106,12 @@ $$;
 
 create or replace function public.is_manager() returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce((select role in ('ceo','manager') from public.profiles where id = auth.uid()), false);
+  select coalesce((select role in ('super_admin','ceo','manager') from public.profiles where id = auth.uid()), false);
+$$;
+
+create or replace function public.is_super_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select role = 'super_admin' from public.profiles where id = auth.uid()), false);
 $$;
 
 -- ----- projects -----
@@ -154,6 +198,9 @@ create table if not exists public.reviews (
   created_at timestamptz not null default now()
 );
 create index if not exists idx_reviews_reviewee on public.reviews(reviewee_id);
+do $$ begin
+  alter table public.reviews add constraint reviews_reviewee_period_unique unique (reviewee_id, period);
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 -- ----- transactions -----
 create table if not exists public.transactions (
@@ -265,7 +312,8 @@ create policy "updates_read"  on public.task_updates for select to authenticated
 create policy "updates_write" on public.task_updates for insert to authenticated
   with check (user_id = auth.uid());
 
--- reviews: reviewees can read their own, managers can read/write all
+-- reviews: reviewees can read their own; managers and super_admin can read/write all.
+-- (is_manager() includes super_admin.)
 drop policy if exists "reviews_read"  on public.reviews;
 drop policy if exists "reviews_write" on public.reviews;
 create policy "reviews_read" on public.reviews for select to authenticated
@@ -280,20 +328,47 @@ create policy "tx_read"  on public.transactions for select to authenticated usin
 create policy "tx_write" on public.transactions for all    to authenticated
   using (public.is_manager()) with check (public.is_manager());
 
--- activity log: read-all, insert by anyone authenticated (system-style)
+-- activity log: read-all, insert only as yourself (no null-actor system spoofing)
 drop policy if exists "activity_read"  on public.activity_log;
 drop policy if exists "activity_write" on public.activity_log;
 create policy "activity_read"  on public.activity_log for select to authenticated using (true);
 create policy "activity_write" on public.activity_log for insert to authenticated
-  with check (actor_id = auth.uid() or actor_id is null);
+  with check (actor_id = auth.uid());
 
--- notifications: per user
+-- notifications: per user. Direct INSERTs are managers-only or self; the
+-- application creates cross-user notifications via the notify() SECURITY DEFINER
+-- function below, which enforces its own rules.
 drop policy if exists "notif_read"   on public.notifications;
 drop policy if exists "notif_update" on public.notifications;
 drop policy if exists "notif_insert" on public.notifications;
 create policy "notif_read"   on public.notifications for select to authenticated using (user_id = auth.uid());
 create policy "notif_update" on public.notifications for update to authenticated using (user_id = auth.uid());
-create policy "notif_insert" on public.notifications for insert to authenticated with check (true);
+create policy "notif_insert" on public.notifications for insert to authenticated
+  with check (user_id = auth.uid() or public.is_manager());
+
+-- notify() — call from server actions to send a notification to another user.
+-- Bypasses RLS but rejects calls from unauthenticated callers and self-empty payloads.
+create or replace function public.notify(
+  target_id uuid, ntitle text, nbody text default null, nlink text default null
+) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'notify(): unauthenticated';
+  end if;
+  if target_id is null or ntitle is null then
+    raise exception 'notify(): missing target or title';
+  end if;
+  -- never spam yourself
+  if target_id = auth.uid() then
+    return;
+  end if;
+  insert into public.notifications (user_id, title, body, link)
+  values (target_id, ntitle, nbody, nlink);
+end; $$;
+
+revoke all on function public.notify(uuid, text, text, text) from public;
+grant execute on function public.notify(uuid, text, text, text) to authenticated;
 
 -- =============================================================
 -- Realtime publications (optional but useful)

@@ -147,6 +147,31 @@ export default async function ProjectDetail({ params }: { params: Promise<{ id: 
               <div className={`mt-1 ${revenue - expense >= 0 ? "text-mint" : "text-red-300"} text-lg font-display`}>
                 {formatCurrency(revenue - expense)}
               </div>
+
+              {project.budget && Number(project.budget) > 0 && (() => {
+                const budget = Number(project.budget);
+                const used = expense;
+                const usedPct = Math.min(100, Math.round((used / budget) * 100));
+                const overBudget = used > budget;
+                const barCls = overBudget ? "bg-red-400" : usedPct > 80 ? "bg-amber-300" : "bg-mint";
+                return (
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="stat-label">Budget burn</span>
+                      <span className={overBudget ? "text-red-300" : "text-bone-300/70"}>
+                        {usedPct}% {overBudget && "· over"}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                      <div className={`h-full ${barCls}`} style={{ width: `${usedPct}%` }} />
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-bone-300/60">
+                      {formatCurrency(used)} of {formatCurrency(budget)}
+                      {overBudget && <span className="text-red-300"> · {formatCurrency(used - budget)} over</span>}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </aside>

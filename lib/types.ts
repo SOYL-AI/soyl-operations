@@ -1,4 +1,4 @@
-export type Role = "ceo" | "manager" | "employee" | "intern";
+export type Role = "super_admin" | "ceo" | "manager" | "employee" | "intern";
 
 export type TaskStatus = "todo" | "in_progress" | "review" | "done" | "blocked";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";

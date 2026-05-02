@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { Star } from "lucide-react";
 import { NewReview } from "./NewReview";
-import { pct } from "@/lib/utils";
+import { pct, prettyRole } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function PerformancePage() {
               <Avatar name={profile.full_name} size={42} />
               <div className="flex-1">
                 <div className="font-display text-bone">{profile.full_name}</div>
-                <div className="text-xs text-bone-300/60 capitalize">{profile.role} · {profile.title || profile.email}</div>
+                <div className="text-xs text-bone-300/60">{prettyRole(profile.role)} · {profile.title || profile.email}</div>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-1 text-mint"><Star className="h-4 w-4 fill-mint" /> <span className="font-display text-lg">{avg ? avg.toFixed(1) : "—"}</span></div>

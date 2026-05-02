@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { TaskStatusChip, PriorityChip } from "@/components/StatusChip";
 import { TaskActions } from "./TaskActions";
 import { CommentForm } from "./CommentForm";
+import { UpdateForm } from "./UpdateForm";
 
 export const dynamic = "force-dynamic";
 
@@ -92,20 +93,29 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
           </div>
 
           <div className="card card-pad">
-            <h3 className="font-display text-bone">Activity</h3>
-            <ul className="mt-3 space-y-2 text-sm">
+            <h3 className="font-display text-bone">Activity & updates</h3>
+            {editable && (
+              <div className="mt-3">
+                <UpdateForm taskId={task.id} />
+              </div>
+            )}
+            <ul className="mt-4 space-y-3 text-sm">
               {(updates ?? []).map((u) => {
                 const p = peopleById.get(u.user_id);
                 return (
-                  <li key={u.id} className="flex items-center justify-between text-bone-300/80">
-                    <span>
-                      <span className="text-bone">{p?.full_name ?? "Someone"}</span>{" "}
-                      {u.status_change ? (
-                        <>changed status to <span className="text-mint">{u.status_change}</span></>
-                      ) : "posted an update"}
-                      {u.note ? ` — ${u.note}` : ""}
-                    </span>
-                    <span className="text-xs text-bone-300/50">{format(new Date(u.created_at), "MMM d, HH:mm")}</span>
+                  <li key={u.id} className="rounded-xl border border-white/5 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-bone-300/80">
+                        <span className="text-bone">{p?.full_name ?? "Someone"}</span>{" "}
+                        {u.status_change ? (
+                          <>changed status to <span className="text-mint">{u.status_change}</span></>
+                        ) : "posted an update"}
+                      </span>
+                      <span className="text-xs text-bone-300/50 whitespace-nowrap">
+                        {format(new Date(u.created_at), "MMM d, HH:mm")}
+                      </span>
+                    </div>
+                    {u.note && <p className="mt-1 text-sm text-bone-200 whitespace-pre-wrap">{u.note}</p>}
                   </li>
                 );
               })}
@@ -124,7 +134,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                 <Avatar name={assignee.full_name} size={32} />
                 <div>
                   <div className="text-bone text-sm">{assignee.full_name}</div>
-                  <div className="text-xs text-bone-300/60 capitalize">{assignee.role}</div>
+                  <div className="text-xs text-bone-300/60">{assignee.role === "super_admin" ? "System admin" : assignee.role.charAt(0).toUpperCase() + assignee.role.slice(1)}</div>
                 </div>
               </div>
             ) : <div className="mt-2 text-sm text-bone-300/60">Unassigned</div>}

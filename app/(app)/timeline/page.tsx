@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, format,
-  startOfWeek, endOfWeek, isSameDay, isSameMonth, addDays, isBefore, isAfter,
+  startOfWeek, endOfWeek, isSameDay, isSameMonth, addDays, isAfter,
 } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";

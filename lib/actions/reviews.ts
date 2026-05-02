@@ -19,13 +19,18 @@ export async function createReview(formData: FormData) {
   const { error } = await supabase.from("reviews").insert({
     reviewee_id, reviewer_id: profile.id, rating, feedback, period,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23505") {
+      return { error: `A review for this person already exists for ${period}.` };
+    }
+    return { error: error.message };
+  }
 
-  await supabase.from("notifications").insert({
-    user_id: reviewee_id,
-    title: "New review",
-    body: `You received a ${rating}/5 rating for ${period}.`,
-    link: "/me",
+  await supabase.rpc("notify", {
+    target_id: reviewee_id,
+    ntitle: "New review",
+    nbody: `You received a ${rating}/5 rating for ${period}.`,
+    nlink: "/me",
   });
 
   revalidatePath("/performance");

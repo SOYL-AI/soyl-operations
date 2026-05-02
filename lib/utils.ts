@@ -32,3 +32,9 @@ export function avatarUrl(seed?: string | null) {
   const s = encodeURIComponent(seed || "soyl");
   return `https://api.dicebear.com/9.x/identicon/svg?seed=${s}&backgroundColor=030709&scale=80`;
 }
+
+export function prettyRole(role: string | null | undefined): string {
+  if (!role) return "—";
+  if (role === "super_admin") return "System admin";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}

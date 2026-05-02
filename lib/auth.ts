@@ -39,9 +39,13 @@ export async function requireProfile(): Promise<Profile> {
 }
 
 export function canManage(role: Role) {
-  return role === "ceo" || role === "manager";
+  return role === "super_admin" || role === "ceo" || role === "manager";
 }
 
 export function isCEO(role: Role) {
   return role === "ceo";
+}
+
+export function isSuperAdmin(role: Role) {
+  return role === "super_admin";
 }

@@ -42,11 +42,35 @@ export default async function MePage() {
     ).length,
   }));
 
+  // Personal performance score — 0-100. Three components:
+  //   completion: % of assigned tasks done (0-40)
+  //   on-time:    % of done tasks delivered by their due date (0-30)
+  //   reviews:    avg rating mapped 1-5 -> 0-30
+  // No assigned tasks → reviews-only proportional score.
+  const totalAssigned = (tasks ?? []).length;
+  const completionPct = totalAssigned ? done.length / totalAssigned : 0;
+  const ontimePct = done.length ? ontime.length / done.length : 0;
+  const reviewScore = avg ? (avg - 1) / 4 : 0;
+  const score = Math.round(completionPct * 40 + ontimePct * 30 + reviewScore * 30);
+  const scoreBand = score >= 80 ? "Excellent" : score >= 60 ? "On track" : score >= 40 ? "Needs focus" : "At risk";
+
   return (
     <>
       <PageHeader title="My work" subtitle="Your tasks, deadlines, and feedback — all in one place." />
 
-      <section className="grid gap-4 sm:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Kpi
+          label="Performance score"
+          value={
+            <span className={
+              score >= 80 ? "text-mint" :
+              score >= 60 ? "text-bone" :
+              score >= 40 ? "text-amber-300" : "text-red-300"
+            }>{score}</span>
+          }
+          hint={scoreBand}
+          className="lg:col-span-1"
+        />
         <Kpi label="Open tasks" value={open.length} hint={`${overdue.length} overdue`} />
         <Kpi label="Completed" value={done.length} hint={`${pct(ontime.length, done.length || 1)}% on-time`} />
         <Kpi label="Avg rating" value={avg ? `${avg.toFixed(1)}/5` : "—"} hint={`${(reviews ?? []).length} reviews`} />
@@ -63,7 +87,7 @@ export default async function MePage() {
             <Avatar name={me.full_name} size={48} />
             <div>
               <div className="font-display text-bone">{me.full_name}</div>
-              <div className="text-xs text-bone-300/60 capitalize">{me.role}</div>
+              <div className="text-xs text-bone-300/60">{me.role === "super_admin" ? "System admin" : me.role.charAt(0).toUpperCase() + me.role.slice(1)}</div>
             </div>
           </div>
           <div className="mt-4">
